@@ -94,11 +94,10 @@ class Skeleton(object, metaclass=SkeletonBase):
                 # falling back to field default if unavailable
                 value = raw_obj.get(field_name, field.default)
 
+            if value is not None:
+                real_value = field.to_python(value)
+
             # set field value in data
-            data[field_name] = value
+            data[field_name] = real_value
 
         return cls(**data)
-        
-                
-    def validate(self):
-        raise NotImplementedError('Skeleton.validate not implemented')
