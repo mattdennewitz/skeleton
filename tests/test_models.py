@@ -34,3 +34,14 @@ def test_nested_array_mapping():
     # ensure we can grab the 0th item in the array
     artist = Artist.convert({'artists': [{'name': 'Coltrane Motion'}]})
     assert artist.name == 'Coltrane Motion'
+
+
+def test_callable_mapping():
+    def get_artist_name(obj):
+        return obj['name']
+
+    class Artist(Skeleton):
+        name = StringField(mapping=get_artist_name)
+
+    artist = Artist.convert({'name': 'Coltrane Motion'})
+    assert artist.name == 'Coltrane Motion'
