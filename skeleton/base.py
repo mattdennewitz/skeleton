@@ -3,7 +3,7 @@ import types
 
 
 class BaseField(object):
-    def __init__(self, field_name=None, mapping=None, default=None):
+    def __init__(self, field_name=None, mapping='', default=None):
         """A representation of a validatable piece of data
 
         Args:
@@ -16,7 +16,7 @@ class BaseField(object):
         """
 
         self.field_name = field_name
-        self.mapping = mapping or self.field_name
+        self.mapping = mapping or field_name
         self.default = default
 
     def __get__(self, obj, owner):
@@ -47,6 +47,9 @@ class SkeletonBase(type):
                 # by field instance
                 if not field.field_name:
                     field.field_name = field_name
+
+                if not field.mapping:
+                    field.mapping = field_name
 
                 fields[field_name] = field
 

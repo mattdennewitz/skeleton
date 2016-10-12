@@ -11,6 +11,14 @@ def test_that_basic_model_field_access_works():
     assert artist.name == 'Coltrane Motion'
 
 
+def test_no_mapping():
+    class Artist(Skeleton):
+        name = StringField()
+
+    artist = Artist.convert({'name': 'Coltrane Motion'})
+    assert artist.name == 'Coltrane Motion'    
+
+
 def test_simple_mapping():
     class Artist(Skeleton):
         name = StringField(mapping='artist_name')
