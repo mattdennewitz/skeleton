@@ -37,7 +37,7 @@ class SkeletonBase(type):
     """
 
     def __new__(cls, name, bases, attrs):
-        new_cls = super(SkeletonBase, cls).__new__(name, bases, attrs)
+        new_cls = super(SkeletonBase, cls).__new__(cls, name, bases, attrs)
 
         fields = {}
 
@@ -48,7 +48,7 @@ class SkeletonBase(type):
                 if not field.field_name:
                     field.field_name = field_name
 
-                fields[key] = field
+                fields[field_name] = field
 
         # set fields on the new instance
         new_cls._fields = fields
@@ -84,20 +84,30 @@ class Skeleton(object, metaclass=SkeletonBase):
             elif '__' in field.mapping:
                 bits = field.mapping.split('__')
                 first_bit = bits.pop(0)
-                value = data[first_bit]
+                value = raw_obj[first_bit]
 
                 while bits:
                     bit = bits.pop(0)
-                    value = value.get(bit)
+
+                    if isinstance(value, dict):
+                        value = value.get(bit)
+                    elif isinstance(value, (list, tuple)):
+                        try:
+                            idx = int(bit)
+                            value = value[idx]
+                        except ValueError:
+                            pass
+                    else:
+                        raise Exception('Dead end query: {}'.format(field.mapping))
             else:
                 # pluck value directly from given raw object,
                 # falling back to field default if unavailable
-                value = raw_obj.get(field_name, field.default)
+                value = raw_obj.get(field.mapping, field.default)
 
             if value is not None:
-                real_value = field.to_python(value)
+                value = field.to_python(value)
 
             # set field value in data
-            data[field_name] = real_value
+            data[field_name] = value
 
         return cls(**data)
