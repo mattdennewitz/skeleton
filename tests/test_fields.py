@@ -46,3 +46,59 @@ def test_date_field():
 
     dt = datetime.date(2016, 10, 11)
     assert Model.convert({'value': '2016-10-11'}).value == dt
+
+
+def test_untyped_list_field():
+    class Model(Skeleton):
+        value = ListField()
+
+    assert Model.convert({'value': [1, 2]}).value[0] == 1
+
+
+def test_int_typed_list_field():
+    class Model(Skeleton):
+        value = ListField(field=IntField())
+
+    assert Model.convert({'value': [1, 2]}).value[0] == 1
+
+    with pytest.raises(ValidationError):
+        Model.convert({'value': ['x', 2]})
+
+
+def test_object_typed_list_field():
+    class Member(Skeleton):
+        name = StringField()
+
+    class Model(Skeleton):
+        value = ListField(field=ObjectField(Member))
+
+    assert Model.convert({'value': [{'name': 'Matt'}]}).value[0].name == 'Matt'
+
+
+def test_object_field():
+    class AlbumRating(Skeleton):
+        title = StringField()
+        score = NumericField()
+
+    class Review(Skeleton):
+        album_rating = ObjectField(AlbumRating)
+
+    # ok review
+    review = Review.convert({
+        'album_rating': {
+            'title': 'Hello Ambition',
+            'score': 10.0
+        }
+    })
+
+    assert review.album_rating.title == 'Hello Ambition'
+
+    with pytest.raises(ValidationError):
+        # bad review, bad score
+        review = Review.convert({
+            'album_rating': {
+                'title': 'Hello Ambition',
+                'score': 'hard pass',
+            }
+        })
+

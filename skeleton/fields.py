@@ -12,6 +12,8 @@ __all__ = (
     'NumericField',
     'DateField',
     'DatetimeField',
+    'ObjectField',
+    'ListField',
 )
 
 
@@ -67,3 +69,35 @@ class DatetimeField(Field):
 
     def convert(self, value):
         return datetime.datetime.strptime(value, self.formatter)
+
+
+# composite fields
+
+class ObjectField(Field):
+    def __init__(self, object_class, **kwargs):
+        self.object_class = object_class
+        super(ObjectField, self).__init__(**kwargs)
+
+    def to_python(self, value):
+        return self.object_class.convert(value)
+
+
+class ListField(Field):
+    def __init__(self, field=None, **kwargs):
+        """Allows optionally-typed list of data
+
+        Args:
+            field: A `Field` instance for member validation. Optional.
+
+        Returns:
+            A `list`
+        """
+
+        self.field = field
+        kwargs['default'] = []
+        super(ListField, self).__init__(**kwargs)
+
+    def to_python(self, value):
+        if self.field is not None:
+            return [self.field.to_python(v) for v in value]
+        return value
