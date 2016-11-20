@@ -53,3 +53,18 @@ def test_callable_mapping():
 
     artist = Artist.convert({'name': 'Coltrane Motion'})
     assert artist.name == 'Coltrane Motion'
+
+
+def test_transformer():
+    def get_artist_name(obj):
+        return obj['name']
+
+    def transform_lowercase(value):
+        return value.lower()
+
+    class Artist(Skeleton):
+        name = StringField(mapping=get_artist_name,
+                           transformer=transform_lowercase)
+
+    artist = Artist.convert({'name': 'Coltrane Motion'})
+    assert artist.name == 'coltrane motion'

@@ -3,7 +3,8 @@ import types
 
 
 class BaseField(object):
-    def __init__(self, field_name=None, mapping='', default=None):
+    def __init__(self, field_name=None, mapping='', transformer=None,
+                 default=None):
         """A representation of a validatable piece of data
 
         Args:
@@ -12,11 +13,14 @@ class BaseField(object):
             mapping: String or callable used to resolve value.
                 Django-style `__` paths allowed for nested objects.
                 Defaults to `field_name`.
+            transformer: Transformation function called before
+                value is cast to Python representation.
             default: Default value to use.
         """
 
         self.field_name = field_name
         self.mapping = mapping or field_name
+        self.transformer = transformer
         self.default = default
 
     def __get__(self, obj, owner):
@@ -106,6 +110,10 @@ class Skeleton(object, metaclass=SkeletonBase):
                 # pluck value directly from given raw object,
                 # falling back to field default if unavailable
                 value = raw_obj.get(field.mapping, field.default)
+
+            # transform values
+            if callable(field.transformer):
+                value = field.transformer(value)
 
             if value is not None:
                 value = field.to_python(value)
