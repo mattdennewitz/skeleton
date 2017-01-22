@@ -3,7 +3,7 @@ import types
 
 
 class BaseField(object):
-    def __init__(self, field_name=None, mapping='', transformer=None,
+    def __init__(self, field_name=None, mapping=None, transformer=None,
                  default=None):
         """A representation of a validatable piece of data
 
@@ -12,14 +12,20 @@ class BaseField(object):
                 skeleton attribute name if not given here.
             mapping: String or callable used to resolve value.
                 Django-style `__` paths allowed for nested objects.
-                Defaults to `field_name`.
             transformer: Transformation function called before
                 value is cast to Python representation.
             default: Default value to use.
         """
 
         self.field_name = field_name
-        self.mapping = mapping or field_name
+
+        if mapping is not None:
+            if (not callable(mapping)
+                and not isinstance(mapping, str)):
+                raise Exception('Mapping for {} must be string or callable'
+                                .format(field_name))
+
+        self.mapping = mapping
         self.transformer = transformer
         self.default = default
 
@@ -52,9 +58,6 @@ class SkeletonBase(type):
                 if not field.field_name:
                     field.field_name = field_name
 
-                if not field.mapping:
-                    field.mapping = field_name
-
                 fields[field_name] = field
 
         # set fields on the new instance
@@ -75,6 +78,18 @@ class Skeleton(object, metaclass=SkeletonBase):
         for field_name, field in self._fields.items():
             value = kwargs.get(field_name, None)
             self._data[field_name] = value
+            
+    def to_primitive(self, obj=None):
+        obj = {}
+
+        for key in self._data:
+            value = self._data[key]
+            if isinstance(value, Skeleton):
+                obj[key] = value.to_primitive()
+            else:
+                obj[key] = value
+
+        return obj
 
     @classmethod
     def convert(cls, raw_obj):
@@ -84,7 +99,12 @@ class Skeleton(object, metaclass=SkeletonBase):
         for field_name, field in cls._fields.items():
             value = None
 
-            if callable(field.mapping):
+            if not field.mapping:
+                if field.default is not None:
+                    value = field.default
+                else:
+                    value = raw_obj
+            elif callable(field.mapping):
                 # mapping is callable: pass in entire object
                 # for value extraction
                 value = field.mapping(raw_obj)
@@ -106,10 +126,10 @@ class Skeleton(object, metaclass=SkeletonBase):
                             pass
                     else:
                         raise Exception('Dead end query: {}'.format(field.mapping))
-            else:
+            elif field.mapping:
                 # pluck value directly from given raw object,
                 # falling back to field default if unavailable
-                value = raw_obj.get(field.mapping, field.default)
+                value = raw_obj.get(field.mapping)
 
             # transform values
             if callable(field.transformer):
@@ -121,4 +141,4 @@ class Skeleton(object, metaclass=SkeletonBase):
             # set field value in data
             data[field_name] = value
 
-        return cls(**data)
+        return data
