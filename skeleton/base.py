@@ -126,6 +126,9 @@ class Skeleton(object, metaclass=SkeletonBase):
                             pass
                     else:
                         raise Exception('Dead end query: {}'.format(field.mapping))
+
+                if value is None and field.default is not None:
+                    value = field.default
             elif field.mapping:
                 # pluck value directly from given raw object,
                 # falling back to field default if unavailable
